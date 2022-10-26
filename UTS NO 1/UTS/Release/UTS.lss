@@ -1,26 +1,14 @@
 
-NO 1.elf:     file format elf32-avr
+UTS.elf:     file format elf32-avr
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
-  0 .text         00000092  00000000  00000000  00000074  2**1
+  0 .text         0000009e  00000000  00000000  00000074  2**1
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  1 .data         00000000  00800060  00800060  00000106  2**0
-                  CONTENTS, ALLOC, LOAD, DATA
-  2 .bss          00000001  00800060  00800060  00000106  2**0
+  1 .bss          00000001  00800060  00800060  00000112  2**0
                   ALLOC
-  3 .comment      00000030  00000000  00000000  00000106  2**0
+  2 .comment      00000030  00000000  00000000  00000112  2**0
                   CONTENTS, READONLY
-  4 .note.gnu.avr.deviceinfo 0000003c  00000000  00000000  00000138  2**2
-                  CONTENTS, READONLY
-  5 .debug_info   0000052e  00000000  00000000  00000174  2**0
-                  CONTENTS, READONLY, DEBUGGING
-  6 .debug_abbrev 000004e7  00000000  00000000  000006a2  2**0
-                  CONTENTS, READONLY, DEBUGGING
-  7 .debug_line   00000115  00000000  00000000  00000b89  2**0
-                  CONTENTS, READONLY, DEBUGGING
-  8 .debug_str    000001af  00000000  00000000  00000c9e  2**0
-                  CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
 
@@ -69,23 +57,29 @@ Disassembly of section .text:
   6c:	b2 07       	cpc	r27, r18
   6e:	e1 f7       	brne	.-8      	; 0x68 <.do_clear_bss_loop>
   70:	0e 94 3e 00 	call	0x7c	; 0x7c <main>
-  74:	0c 94 47 00 	jmp	0x8e	; 0x8e <_exit>
+  74:	0c 94 4d 00 	jmp	0x9a	; 0x9a <_exit>
 
 00000078 <__bad_interrupt>:
   78:	0c 94 00 00 	jmp	0	; 0x0 <__vectors>
 
 0000007c <main>:
-  7c:	83 ec       	ldi	r24, 0xC3	; 195
-  7e:	88 bb       	out	0x18, r24	; 24
-  80:	8f e0       	ldi	r24, 0x0F	; 15
-  82:	87 bb       	out	0x17, r24	; 23
-  84:	00 00       	nop
-  86:	86 b3       	in	r24, 0x16	; 22
-  88:	80 93 60 00 	sts	0x0060, r24	; 0x800060 <__DATA_REGION_ORIGIN__>
-  8c:	ff cf       	rjmp	.-2      	; 0x8c <main+0x10>
+  7c:	bc 9a       	sbi	0x17, 4	; 23
+  7e:	de 9a       	sbi	0x1b, 6	; 27
+  80:	85 e0       	ldi	r24, 0x05	; 5
+  82:	8a 95       	dec	r24
+  84:	f1 f7       	brne	.-4      	; 0x82 <main+0x6>
+  86:	00 00       	nop
+  88:	89 b3       	in	r24, 0x19	; 25
+  8a:	80 93 60 00 	sts	0x0060, r24
+  8e:	ce 99       	sbic	0x19, 6	; 25
+  90:	02 c0       	rjmp	.+4      	; 0x96 <main+0x1a>
+  92:	c4 9a       	sbi	0x18, 4	; 24
+  94:	fc cf       	rjmp	.-8      	; 0x8e <main+0x12>
+  96:	c4 98       	cbi	0x18, 4	; 24
+  98:	fa cf       	rjmp	.-12     	; 0x8e <main+0x12>
 
-0000008e <_exit>:
-  8e:	f8 94       	cli
+0000009a <_exit>:
+  9a:	f8 94       	cli
 
-00000090 <__stop_program>:
-  90:	ff cf       	rjmp	.-2      	; 0x90 <__stop_program>
+0000009c <__stop_program>:
+  9c:	ff cf       	rjmp	.-2      	; 0x9c <__stop_program>
