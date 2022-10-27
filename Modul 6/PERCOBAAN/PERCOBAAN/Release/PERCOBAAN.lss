@@ -3,11 +3,11 @@ PERCOBAAN.elf:     file format elf32-avr
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
-  0 .text         000000a8  00000000  00000000  00000054  2**1
+  0 .text         000000a6  00000000  00000000  00000054  2**1
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  1 .data         00000000  00800060  00800060  000000fc  2**0
+  1 .data         00000000  00800060  00800060  000000fa  2**0
                   CONTENTS, ALLOC, LOAD, DATA
-  2 .comment      00000030  00000000  00000000  000000fc  2**0
+  2 .comment      00000030  00000000  00000000  000000fa  2**0
                   CONTENTS, READONLY
   3 .note.gnu.avr.deviceinfo 0000003c  00000000  00000000  0000012c  2**2
                   CONTENTS, READONLY
@@ -52,8 +52,8 @@ Disassembly of section .text:
   5a:	d4 e0       	ldi	r29, 0x04	; 4
   5c:	de bf       	out	0x3e, r29	; 62
   5e:	cd bf       	out	0x3d, r28	; 61
-  60:	0e 94 44 00 	call	0x88	; 0x88 <main>
-  64:	0c 94 52 00 	jmp	0xa4	; 0xa4 <_exit>
+  60:	0e 94 43 00 	call	0x86	; 0x86 <main>
+  64:	0c 94 51 00 	jmp	0xa2	; 0xa2 <_exit>
 
 00000068 <__bad_interrupt>:
   68:	0c 94 00 00 	jmp	0	; 0x0 <__vectors>
@@ -63,34 +63,33 @@ Disassembly of section .text:
   6e:	86 b1       	in	r24, 0x06	; 6
   70:	87 60       	ori	r24, 0x07	; 7
   72:	86 b9       	out	0x06, r24	; 6
-  74:	35 9a       	sbi	0x06, 5	; 6
-  76:	80 b7       	in	r24, 0x30	; 48
-  78:	8f 71       	andi	r24, 0x1F	; 31
-  7a:	80 bf       	out	0x30, r24	; 48
-  7c:	87 b1       	in	r24, 0x07	; 7
-  7e:	80 6c       	ori	r24, 0xC0	; 192
-  80:	87 b9       	out	0x07, r24	; 7
-  82:	38 9a       	sbi	0x07, 0	; 7
-  84:	3d 98       	cbi	0x07, 5	; 7
-  86:	08 95       	ret
+  74:	80 b7       	in	r24, 0x30	; 48
+  76:	8f 71       	andi	r24, 0x1F	; 31
+  78:	80 bf       	out	0x30, r24	; 48
+  7a:	87 b1       	in	r24, 0x07	; 7
+  7c:	80 6c       	ori	r24, 0xC0	; 192
+  7e:	87 b9       	out	0x07, r24	; 7
+  80:	38 9a       	sbi	0x07, 0	; 7
+  82:	3d 98       	cbi	0x07, 5	; 7
+  84:	08 95       	ret
 
-00000088 <main>:
-  88:	0e 94 36 00 	call	0x6c	; 0x6c <ADC_INIT>
-  8c:	36 9a       	sbi	0x06, 6	; 6
-  8e:	8f ef       	ldi	r24, 0xFF	; 255
-  90:	81 bb       	out	0x11, r24	; 17
-  92:	84 bb       	out	0x14, r24	; 20
-  94:	34 9b       	sbis	0x06, 4	; 6
-  96:	fe cf       	rjmp	.-4      	; 0x94 <main+0xc>
-  98:	84 b1       	in	r24, 0x04	; 4
-  9a:	82 bb       	out	0x12, r24	; 18
-  9c:	85 b1       	in	r24, 0x05	; 5
-  9e:	85 bb       	out	0x15, r24	; 21
-  a0:	34 9a       	sbi	0x06, 4	; 6
-  a2:	f8 cf       	rjmp	.-16     	; 0x94 <main+0xc>
+00000086 <main>:
+  86:	0e 94 36 00 	call	0x6c	; 0x6c <ADC_INIT>
+  8a:	36 9a       	sbi	0x06, 6	; 6
+  8c:	8f ef       	ldi	r24, 0xFF	; 255
+  8e:	81 bb       	out	0x11, r24	; 17
+  90:	84 bb       	out	0x14, r24	; 20
+  92:	34 9b       	sbis	0x06, 4	; 6
+  94:	fe cf       	rjmp	.-4      	; 0x92 <main+0xc>
+  96:	84 b1       	in	r24, 0x04	; 4
+  98:	82 bb       	out	0x12, r24	; 18
+  9a:	85 b1       	in	r24, 0x05	; 5
+  9c:	85 bb       	out	0x15, r24	; 21
+  9e:	34 9a       	sbi	0x06, 4	; 6
+  a0:	f8 cf       	rjmp	.-16     	; 0x92 <main+0xc>
 
-000000a4 <_exit>:
-  a4:	f8 94       	cli
+000000a2 <_exit>:
+  a2:	f8 94       	cli
 
-000000a6 <__stop_program>:
-  a6:	ff cf       	rjmp	.-2      	; 0xa6 <__stop_program>
+000000a4 <__stop_program>:
+  a4:	ff cf       	rjmp	.-2      	; 0xa4 <__stop_program>
