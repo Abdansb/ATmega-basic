@@ -1,0 +1,66 @@
+/*
+ * UTS_NO_2.c
+ * Created: 26/10/2022 04.07.59
+ *  Author: Abdan Subekti
+ */ 
+
+#define F_CPU 16000000L
+#include <avr/io.h>
+#include <util/delay.h>
+#define RES 500
+
+void adc_init()
+{
+	// ADC enable ADEN bit 7
+	ADCSRA |= (1 << 7); 
+	// Tegangan referensi AREF=AVCC kapasitor eksternal
+	ADMUX = (1<<REFS0);
+	// Single ended input ADC
+	ADMUX |= (1 << 0); // Analog channel & gain selection bit (MUX0)
+	// ADPS prescaler 128, 16000000/128 = 125000
+	ADCSRA |= (1 <<2)|(1 << 1)|(1 << 0); 
+	// Mode free running, bit 7,6,5 = 0
+	SFIOR &= ~(1 << 7) &~ (1 << 6) &~ (1 << 5); 
+	
+}
+
+
+int main()
+{
+	int adcValue;
+	int nilaiBawah;
+	int nilaiAtas; 
+	int nilaiSensor;
+	adc_init();
+	// free running 25 adc clock cycles
+	ADCSRA |= (1 << 6); // ADSC adc start conversion
+	
+	DDRD = 0xff;
+	PORTD = 0x00;
+	DDRC = 0xff;
+
+	while (1)
+	{
+
+		if (ADCSRA & (1 << 4)) // ADIF interrupt flag, jika adc selesai
+		{
+			nilaiBawah = (int)ADCL;
+			nilaiAtas = (int)ADCH*256;
+			nilaiSensor = nilaiAtas+nilaiBawah;
+			ADCSRA |= (1 << 4);
+			if (nilaiSensor>768)
+			{
+				PORTD = 0x01;
+			}else if (nilaiSensor>511)
+			{
+				PORTD = 0x02;
+			}else if (nilaiSensor>255)
+			{
+				PORTD = 0x04;
+			}else if (nilaiSensor>1)
+			{
+				PORTD = 0x08;
+			}
+		}
+	}
+}
