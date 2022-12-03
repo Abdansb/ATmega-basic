@@ -62,15 +62,15 @@ Disassembly of section .text:
   7e:	0c 94 00 00 	jmp	0	; 0x0 <__vectors>
 
 00000082 <LCD_Command>:
-  82:	88 bb       	out	0x18, r24	; 24
-  84:	a8 98       	cbi	0x15, 0	; 21
-  86:	a9 98       	cbi	0x15, 1	; 21
-  88:	aa 9a       	sbi	0x15, 2	; 21
+  82:	85 bb       	out	0x15, r24	; 21
+  84:	dd 98       	cbi	0x1b, 5	; 27
+  86:	de 98       	cbi	0x1b, 6	; 27
+  88:	df 9a       	sbi	0x1b, 7	; 27
   8a:	85 e0       	ldi	r24, 0x05	; 5
   8c:	8a 95       	dec	r24
   8e:	f1 f7       	brne	.-4      	; 0x8c <LCD_Command+0xa>
   90:	00 00       	nop
-  92:	aa 98       	cbi	0x15, 2	; 21
+  92:	df 98       	cbi	0x1b, 7	; 27
   94:	8f ed       	ldi	r24, 0xDF	; 223
   96:	9e e2       	ldi	r25, 0x2E	; 46
   98:	01 97       	sbiw	r24, 0x01	; 1
@@ -80,15 +80,15 @@ Disassembly of section .text:
   a0:	08 95       	ret
 
 000000a2 <LCD_Char>:
-  a2:	88 bb       	out	0x18, r24	; 24
-  a4:	a8 9a       	sbi	0x15, 0	; 21
-  a6:	a9 98       	cbi	0x15, 1	; 21
-  a8:	aa 9a       	sbi	0x15, 2	; 21
+  a2:	85 bb       	out	0x15, r24	; 21
+  a4:	dd 9a       	sbi	0x1b, 5	; 27
+  a6:	de 98       	cbi	0x1b, 6	; 27
+  a8:	df 9a       	sbi	0x1b, 7	; 27
   aa:	85 e0       	ldi	r24, 0x05	; 5
   ac:	8a 95       	dec	r24
   ae:	f1 f7       	brne	.-4      	; 0xac <LCD_Char+0xa>
   b0:	00 00       	nop
-  b2:	aa 98       	cbi	0x15, 2	; 21
+  b2:	df 98       	cbi	0x1b, 7	; 27
   b4:	8f e9       	ldi	r24, 0x9F	; 159
   b6:	9f e0       	ldi	r25, 0x0F	; 15
   b8:	01 97       	sbiw	r24, 0x01	; 1
@@ -99,8 +99,8 @@ Disassembly of section .text:
 
 000000c2 <LCD_Init>:
   c2:	8f ef       	ldi	r24, 0xFF	; 255
-  c4:	84 bb       	out	0x14, r24	; 20
-  c6:	87 bb       	out	0x17, r24	; 23
+  c4:	8a bb       	out	0x1a, r24	; 26
+  c6:	84 bb       	out	0x14, r24	; 20
   c8:	2f ef       	ldi	r18, 0xFF	; 255
   ca:	89 ef       	ldi	r24, 0xF9	; 249
   cc:	90 e0       	ldi	r25, 0x00	; 0
@@ -141,7 +141,7 @@ Disassembly of section .text:
  118:	0e 94 7c 00 	call	0xf8	; 0xf8 <LCD_String>
  11c:	80 ec       	ldi	r24, 0xC0	; 192
  11e:	0e 94 41 00 	call	0x82	; 0x82 <LCD_Command>
- 122:	8c e6       	ldi	r24, 0x6C	; 108
+ 122:	8b e6       	ldi	r24, 0x6B	; 107
  124:	90 e0       	ldi	r25, 0x00	; 0
  126:	0e 94 7c 00 	call	0xf8	; 0xf8 <LCD_String>
  12a:	80 e0       	ldi	r24, 0x00	; 0
