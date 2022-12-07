@@ -11,83 +11,204 @@
 #define F_CPU 16000000L
 #include <avr/io.h>
 #include <util/delay.h>
+#include <avr/interrupt.h>
 
-#define LCD_Data_Dir DDRC		/* Define LCD data port direction */
-#define LCD_Command_Dir DDRA		/* Define LCD command port direction register */
-#define LCD_Data_Port PORTC		/* Define LCD data port */
-#define LCD_Command_Port PORTA		/* Define LCD data port */
-#define RS PA5				/* Define Register Select (data/command reg.)pin */
-#define RW PA6				/* Define Read/Write signal pin */
-#define EN PA7				/* Define Enable signal pin */
+#define LCD_Data_Dir DDRC		// DDR Data Port LCD
+#define LCD_Command_Dir DDRA	// DDR Command Port LCD
+#define LCD_Data_Port PORTC		// Sinyal data LCD port C
+#define LCD_Command_Port PORTA	// Command LCD port A
+#define RS PA5					// LCD Register select pin
+#define RW PA6					// LCD Read / Write pin
+#define EN PA7					// LCD enable pin (pulse)
 
+#define USART_BAUDRATE 9600
+#define BAUD_PRESCALE (((F_CPU / (USART_BAUDRATE * 16UL))) - 1) // BAUD_PRESCALE = 103
+/******* UBRR = F_CPU / (BAUD x 16 unsigned long) - 1 **********/
 
-void LCD_Command(unsigned char cmnd)
+char buf[100];							// Variabel sementara data gps
+volatile char ind,flag,stringReceived;	// Variabel update data
+char gpgga[]={'$','G','P','R','M','C'};	// String untuk dicocokan ke data gps
+/****************Array GPS***************/
+char latitude[12];						
+char logitude[12];
+char altitude[12];
+
+void serialbegin()
+{	
+	// Pilih register UCSRC & Frame format 8 data bits
+	UCSRC = (1 << URSEL) | (1 << UCSZ0) | (1 << UCSZ1); 
+	
+	UBRRH = (BAUD_PRESCALE >> 8);			// Load upper 8-bits
+	UBRRL = BAUD_PRESCALE;					// Load lower 8-bits of the baud rate
+	UCSRB=(1<<RXEN)|(1<<TXEN)|(1<<RXCIE);	// Aktifkan Rx, Tx, dan interrupt flag Rx
+}
+
+ISR(USART_RXC_vect)							// Interrrupt aktif ketika USART Receive Complete
 {
-	LCD_Data_Port= cmnd;
-	LCD_Command_Port &= ~(1<<RS);	/* RS=0 command reg. */
+	char ch=UDR;							// Tampung USART Data ke variable ch
+	buf[ind]=ch;							// copy data ch ke array buf[]
+	ind++;									// increment index buf untuk scan data dari gps
+	if(ind<7)								// scan data 6 karakter pertama tiap baris
+	{
+		if(buf[ind-1] != gpgga[ind-1])      // Baris yg tidak ada "$GPGGGA" akan diabaikan
+		ind=0;
+	}
+	if(ind>=50)								// Jika "$GPGGGA" ketemu, copy semuanya ke variabel buf[100]
+	
+	// set flag ke variabel ketika baris diatas diterima seluruhnya
+	stringReceived=1;						
+}
+
+void LCD_Command(unsigned char gantiBaris)
+{
+	LCD_Data_Port= gantiBaris;		/* Parameter gantiBaris PORTC 6 & 7 = 1 */
+	LCD_Command_Port &= ~(1<<RS);	/* RS=0 command reg */
 	LCD_Command_Port &= ~(1<<RW);	/* RW=0 Write operation */
-	LCD_Command_Port |= (1<<EN);	/* Enable pulse */
+	LCD_Command_Port |= (1<<EN);	/* Aktifkan LCD dengan pulse */
 	_delay_us(1);
-	LCD_Command_Port &= ~(1<<EN);
+	LCD_Command_Port &= ~(1<<EN);	/* Matikan pulse */
 	_delay_ms(3);
 }
 
-void LCD_Char (unsigned char char_data)	/* LCD data write function */
+void LCD_Char (unsigned char char_data)	/* Fungsi print LCD */
 {
-	LCD_Data_Port= char_data;
+	LCD_Data_Port= char_data;		/* Parameter untuk print tiap karakter */
 	LCD_Command_Port |= (1<<RS);	/* RS=1 Data reg. */
 	LCD_Command_Port &= ~(1<<RW);	/* RW=0 write operation */
-	LCD_Command_Port |= (1<<EN);	/* Enable Pulse */
+	LCD_Command_Port |= (1<<EN);	/* Aktifkan LCD dengan pulse */
 	_delay_us(1);
-	LCD_Command_Port &= ~(1<<EN);
+	LCD_Command_Port &= ~(1<<EN);	/* Matikan pulse */
 	_delay_ms(1);
 }
 
-void LCD_Init (void)			/* LCD Initialize function */
+void LCD_Init (void)			/* Inisialisasi LCD */
 {
-	LCD_Command_Dir = 0xFF;		/* Make LCD command port direction as o/p */
-	LCD_Data_Dir = 0xFF;		/* Make LCD data port direction as o/p */
-	_delay_ms(20);			/* LCD Power ON delay always >15ms */
+	LCD_Command_Dir = 0xFF;		/* set LCD command port sebagai output */
+	LCD_Data_Dir = 0xFF;		/* set LCD data port sebagai output */
+	_delay_ms(20);				/* Delay untuk menunggu inisialisasi LCD >15 ms */
 	
-	LCD_Command (0x38);		/* Initialization of 16X2 LCD in 8bit mode */
-	LCD_Command (0x0C);		/* Display ON Cursor OFF */
-	LCD_Command (0x06);		/* Auto Increment cursor */
-	LCD_Command (0x01);		/* Clear display */
-	LCD_Command (0x80);		/* Cursor at home position */
+	LCD_Command (1 << PORTA5 | 1 << PORTA4 | 1 << PORTA3);		/* mode LCD dalam mode 8-bit (pin) */
+	LCD_Command (1 << PORTA3 | 1 << PORTA2);					/* Display on & cursor off */
+	LCD_Command (1 << PORTA2 | 1 << PORTA1);					/* Auto Increment cursor */
+	LCD_Command (1 << PORTA0);									/* Clear LCD */
+	LCD_Command (1 << PORTA7);									/* Posisi kursor pada kolom pertama */
 }
 
-void LCD_String (char *str)		/* Send string to LCD function */
+void LCD_String (char *str)		/* Pecah string ke char satu-satu ke tampilan LCD */
 {
 	int i;
-	for(i=0;str[i]!=0;i++)		/* Send each char of string till the NULL */
+	for(i=0;str[i]!=0;i++)		/* Kirim string ke fungsi LCD_char untuk ditampilkan */
 	{
 		LCD_Char (str[i]);
 	}
 }
 
-void LCD_String_xy (char row, char pos, char *str)/* Send string to LCD with xy position */
+void LCD_String_xy (char baris, char kolom, char *str)/* Send string to LCD with xy position */
 {
-	if (row == 0 && pos<16)
-	LCD_Command((pos & 0x0F)|0x80);	/* Command of first row and required position<16 */
-	else if (row == 1 && pos<16)
-	LCD_Command((pos & 0x0F)|0xC0);	/* Command of first row and required position<16 */
+	if (baris == 0 && kolom<16)
+	LCD_Command((kolom & 0x0F)|0x80);	/* Command of first baris and required position<16 */
+	else if (baris == 1 && kolom<16)
+	LCD_Command((kolom & 0x0F)|0xC0);	/* Command of first baris and required position<16 */
 	LCD_String(str);		/* Call LCD string function */
 }
 
 void LCD_Clear()
 {
-	LCD_Command (0x01);		/* clear display */
-	LCD_Command (0x80);		/* cursor at home position */
+	LCD_Command (1 << PORTC0);		/* clear display */
+	LCD_Command (1 << PORTC7);		/* cursor di kolom & baris pertama */
+}
+
+void ADC_INIT()
+{
+	ADCSRA |= (1 << 7); // ADC enable ADEN bit 7
+	ADCSRA |= (1 <<2)|(1 << 1)|(1 << 0); // ADPS prescaler select bits
+	SFIOR &= ~(1 << 7) &~ (1 << 6) &~ (1 << 5); // mode free running, bit 765 isinya 0
+	
+	ADMUX |= (1 << 7)|(1 << 6); // set refernsi internal 2.56 V
+	ADMUX |= (1 << 0); // Analaog channel & gain selection bit (MUX0)
+	// single ended input adc 0
+	ADMUX &= ~(1 << 5); // Right adjusted presentation adc result
 }
 
 int main()
 {
+	ADC_INIT();
+	ADCSRA |= (1 << 6); // ADSC adc start conversion free running
+	DDRB = 0xff;
+	
+	LCD_Init();								// Inisialisasi LCD
+	serialbegin();							// Inisialisasi usart
 
-	LCD_Init();			/* Initialize LCD */
-
-	LCD_String("Kelompok 4");	/* write string on 1st line of LCD*/
-	LCD_Command(0xC0);	/* Go to 2nd line*/
-	LCD_String("Mikrokontroller");	/* Write string on 2nd line*/
+	LCD_String("Kelompok 4");
+	LCD_Command (1 << PORTC7|1 << PORTC6);	// Pindah baris kedua
+	LCD_String("Mikrokontroller");
+	_delay_ms(3000);
+	LCD_Clear();
+	
+	/* Mulai interrupt usart, set SREG bit ke-8 = 1, interrupt global enable */
+	sei();
+	
+	while(1)
+	{
+		if (ADCSRA & (1 << 4)) // ADIF interrupt flag, jika adc selesai
+		{
+			PORTB = ADCL;
+			ADCSRA |= (1 << 4);
+		}
+		if(stringReceived == 1)
+		{
+			// Hentikan interrupt dengan clear SREG, interrupt global disable
+			cli();
+			
+			for(int i=0;i<ind;i++)						// copy satu baris dari GPRMC
+			ind=0;										// setelahnya index nol lagi
+			
+			stringReceived=0;							// baris sudah diterima, flag nol lagi
+			
+			LCD_Command (1 << PORTA7);					// Posisi kursor LCD kolom & baris pertama
+			LCD_String("LAT: ");
+			
+			// Pilih string dari GPRMC yang memuat latitude, ada di buf[17] sampai buf[29]
+			for(int i=20;i<32;i++)
+			{
+				latitude[i]=buf[i];						// Copy altitude ke array sendiri
+				LCD_Char(latitude[i]);					// Panggil fungsi tampilkan di LCD
+			
+			}
+			
+			LCD_Command (1 << PORTC7|1 << PORTC6);		// Pindah baris kedua LCD
+			LCD_String("LOG:");
+			
+			// Pilih string dari GPRMC yang memuat latitude, ada di buf[30] sampai buf[43]
+			for(int i=32;i<45;i++)
+			{
+				logitude[i]=buf[i];						// Copy logitude ke array sendiri
+				LCD_Char(logitude[i]);					// Panggil fungsi tampilkan di LCD
+				if(i==38)
+				{
+					//LCD_Char(' ');
+					i++;
+				}
+			}
+			
+			/*_delay_ms(3000);
+			for(int i=0;i<ind;i++)						// copy satu baris dari GPRMC
+			ind=0;
+			LCD_Clear();
+			LCD_String("Time: ");
+			for(int i=7;i<19;i++)
+			{
+				altitude[i]=buf[i];
+				LCD_Char(altitude[i]);
+			}*/
+			
+			
+			
+			_delay_ms(500); // Tunda 10 detik sebelum scan data gps baru lagi
+			sei(); // Ketika data gps dari interrupt sudah ditampilkan maka interrupt jalan lagi
+			
+		}
+	}
 
 	return 0;
 }

@@ -1,0 +1,157 @@
+/*
+* FinalProject10.c
+*
+* Created: 11/22/2022 3:45:23 PM
+*  Author: Kelompok 10
+*	Bagus Hatmoko
+*	Sherly Indiana
+*	Abdan Subekti
+*/
+
+#define F_CPU 16000000L
+#include <avr/io.h>
+#include <util/delay.h>
+#include <avr/interrupt.h>
+
+#define USART_BAUDRATE 9600
+#define BAUD_PRESCALE (((F_CPU / (USART_BAUDRATE * 16UL))) - 1)
+#define LCD_Command_Dir DDRA
+#define LCD_Command_Port PORTA
+#define LCDPORTDIR DDRC
+#define LCDPORT PORTC
+#define rs 5
+#define rw 6
+#define en 7
+
+#define RSLow (LCD_Command_Port&=~(1<<rs))
+#define RSHigh (LCD_Command_Port|=(1<<rs))
+#define RWLow (LCD_Command_Port&=~(1<<rw))
+#define ENLow (LCD_Command_Port&=~(1<<en))
+#define ENHigh (LCD_Command_Port|=(1<<en))
+
+enum
+{
+	CMD=0,
+	DATA,
+};
+
+char buf[100];
+volatile char ind,flag,stringReceived;
+char gpgga[]={'$','G','P','G','G','A'};
+char latitude[12];
+char logitude[12];
+
+void lcdwrite(char ch,char r)
+{
+	LCDPORT=ch & 0xF0;
+	RWLow;
+	if(r == 1)
+	RSHigh;
+	else
+	RSLow;
+	ENHigh;
+	_delay_ms(1);
+	ENLow;
+	_delay_ms(1);
+	LCDPORT=ch<<4 & 0xF0;
+	RWLow;
+	if(r == 1)
+	RSHigh;
+	else
+	RSLow;
+	ENHigh;
+	_delay_ms(1);
+	ENLow;
+	_delay_ms(1);
+}
+
+void lcdprint(char *str)
+{
+	while(*str)
+	{
+		lcdwrite(*str++,DATA);
+		//__delay_ms(20);
+	}
+}
+
+void lcdbegin()
+{
+	char lcdcmd[5]={0x02,0x28,0x0E,0x06,0x01};
+	for(int i=0;i<5;i++)
+	lcdwrite(lcdcmd[i], CMD);
+}
+
+void serialbegin()
+{
+	UCSRC = (1 << URSEL) | (1 << UCSZ0) | (1 << UCSZ1);
+	UBRRH = (BAUD_PRESCALE >> 8);
+	UBRRL = BAUD_PRESCALE;
+	UCSRB=(1<<RXEN)|(1<<TXEN)|(1<<RXCIE);
+}
+
+ISR(USART_RXC_vect)
+{
+	char ch=UDR;
+	buf[ind]=ch;
+	ind++;
+	if(ind<7)
+	{
+		if(buf[ind-1] != gpgga[ind-1])              // $GPGGA
+		ind=0;
+	}
+	if(ind>=50)
+	stringReceived=1;
+}
+
+int main()
+{
+	LCDPORTDIR=0xFF;
+	LCD_Command_Dir=0xFF;
+	serialbegin();
+	lcdbegin();
+	lcdprint("Kelompok 4");
+	lcdwrite(192,CMD);
+	lcdprint("GPS Tracker ");
+	_delay_ms(3000);
+	/*lcdwrite(1,0);
+	lcdprint("Waiting for GPS");
+	_delay_ms(2000);*/
+	sei();
+	while(1)
+	{
+		if(stringReceived == 1)
+		{
+			cli();
+			for(int i=0;i<ind;i++)
+			ind=0;
+			stringReceived=0;
+			lcdwrite(0x80,0);
+			lcdprint("Lat:");
+			for(int i=17;i<29;i++)
+			{
+				latitude[i]=buf[i];
+				lcdwrite(latitude[i],1);
+				if(i==24)
+				{
+					lcdwrite(' ',1);
+					i++;
+				}
+			}
+			lcdwrite(192,0);
+			lcdprint("Log:");
+			for(int i=31;i<43;i++)
+			{
+				logitude[i]=buf[i];
+				lcdwrite(logitude[i],1);
+				if(i==38)
+				{
+					lcdwrite(' ',1);
+					i++;
+				}	
+			}
+			_delay_ms(2000);
+			sei();
+		}
+	}
+	return 0;
+}

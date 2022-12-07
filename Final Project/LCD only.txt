@@ -1,0 +1,93 @@
+/*
+ * FinalProject10.c
+ *
+ * Created: 11/22/2022 3:45:23 PM
+ *  Author: Kelompok 10
+ *	Bagus Hatmoko
+ *	Sherly Indiana
+ *	Abdan Subekti
+ */ 
+
+#define F_CPU 16000000L
+#include <avr/io.h>
+#include <util/delay.h>
+
+#define LCD_Data_Dir DDRC		// DDR Data Port LCD
+#define LCD_Command_Dir DDRA	// DDR Command Port LCD
+#define LCD_Data_Port PORTC		// Sinyal data LCD port C
+#define LCD_Command_Port PORTA	// Command LCD port A
+#define RS PA5					// LCD Register select pin
+#define RW PA6					// LCD Read / Write pin
+#define EN PA7					// LCD enable pin (pulse)
+
+
+void LCD_Command(unsigned char gantiBaris)
+{
+	LCD_Data_Port= gantiBaris;		/* Parameter gantiBaris PORTC 6 & 7 = 1 */
+	LCD_Command_Port &= ~(1<<RS);	/* RS=0 command reg */
+	LCD_Command_Port &= ~(1<<RW);	/* RW=0 Write operation */
+	LCD_Command_Port |= (1<<EN);	/* Aktifkan LCD dengan pulse */
+	_delay_us(1);
+	LCD_Command_Port &= ~(1<<EN);
+	_delay_ms(3);
+}
+
+void LCD_Char (unsigned char char_data)	/* Fungsi print LCD */
+{
+	LCD_Data_Port= char_data;		/* Parameter untuk print tiap karakter */
+	LCD_Command_Port |= (1<<RS);	/* RS=1 Data reg. */
+	LCD_Command_Port &= ~(1<<RW);	/* RW=0 write operation */
+	LCD_Command_Port |= (1<<EN);	/* Aktifkan LCD dengan pulse */
+	_delay_us(1);
+	LCD_Command_Port &= ~(1<<EN);
+	_delay_ms(1);
+}
+
+void LCD_Init (void)			/* Inisialisasi LCD */
+{
+	LCD_Command_Dir = 0xFF;		/* set LCD command port sebagai output */
+	LCD_Data_Dir = 0xFF;		/* set LCD data port sebagai output */
+	_delay_ms(20);				/* Delay untuk menunggu inisialisasi LCD >15 ms */
+	
+	LCD_Command (1 << PORTA5 | 1 << PORTA4 | 1 << PORTA3);		/* mode LCD dalam mode 8-bit (pin) */
+	LCD_Command (1 << PORTA3 | 1 << PORTA2);		/* Display on & cursor off */
+	LCD_Command (1 << PORTA2 | 1 << PORTA1);		/* Auto Increment cursor */
+	LCD_Command (1 << PORTA0);						/* Clear LCD */
+	LCD_Command (1 << PORTA7);						/* Posisi kursor pada kolom pertama */
+}
+
+void LCD_String (char *str)		/* Pecah string ke char satu-satu ke tampilan LCD */
+{
+	int i;
+	for(i=0;str[i]!=0;i++)		/* Kirim string ke fungsi LCD_char untuk ditampilkan */
+	{
+		LCD_Char (str[i]);
+	}
+}
+
+void LCD_String_xy (char baris, char kolom, char *str)/* Send string to LCD with xy position */
+{
+	if (baris == 0 && kolom<16)
+	LCD_Command((kolom & 0x0F)|0x80);	/* Command of first baris and required position<16 */
+	else if (baris == 1 && kolom<16)
+	LCD_Command((kolom & 0x0F)|0xC0);	/* Command of first baris and required position<16 */
+	LCD_String(str);		/* Call LCD string function */
+}
+
+void LCD_Clear()
+{
+	LCD_Command (1 << PORTC0);		/* clear display */
+	LCD_Command (1 << PORTC7);		/* cursor at home position */
+}
+
+int main()
+{
+
+	LCD_Init();			/* Initialize LCD */
+
+	LCD_String("Kelompok 4");	/* write string on 1st line of LCD*/
+	LCD_Command (1 << PORTC7|1 << PORTC6);	/* Go to 2nd line*/
+	LCD_String("Mikrokontroller");	/* Write string on 2nd line*/
+
+	return 0;
+}
