@@ -31,8 +31,8 @@ char gprmc[]={'$','G','P','G','G','A'};	// String untuk dicocokan ke data gps
 /****************Array GPS***************/
 char latitude[12];						
 char logitude[12];
+char altitude[12];
 char time[12];
-int jam;
 
 void serialbegin()
 {	
@@ -144,7 +144,7 @@ int main()
 			{
 				latitude[i]=buf[i];						// Copy time ke array sendiri
 				LCD_Char(latitude[i]);					// Panggil fungsi tampilkan di LCD
-			
+				
 			}
 			
 			LCD_Command (1 << PORTC7|1 << PORTC6);		// Pindah baris kedua LCD
@@ -155,9 +155,9 @@ int main()
 			{
 				logitude[i]=buf[i];						// Copy logitude ke array sendiri
 				LCD_Char(logitude[i]);					// Panggil fungsi tampilkan di LCD
-				if(i==38)
+				if(i==32)
 				{
-					//LCD_Char(' ');
+					//LCD_String(".");
 					i++;
 				}
 			}
@@ -165,13 +165,25 @@ int main()
 			sei(); // Ketika data gps dari interrupt sudah ditampilkan maka interrupt jalan lagi
 			_delay_ms(3000);
 			LCD_Clear();
-			LCD_String("Time: ");
-			for(int i=7;i<29;i++)
+			LCD_String("TIME: ");
+			for(int i=7;i<16;i++)
 			{
 				time[i]=buf[i];
 				LCD_Char(time[i]);
 			}
 
+			LCD_Command (1 << PORTC7|1 << PORTC6);		// Pindah baris kedua LCD
+			LCD_String("ALTI: ");
+			for(int i=54;i<60;i++)
+			{
+				altitude[i]=buf[i];
+				LCD_Char(altitude[i]);
+				if(i==58)
+				{
+					LCD_String(" MDPL");
+					i++;
+				}
+			}
 
 
 			_delay_ms(3000); // Tunda 10 detik sebelum scan data gps baru lagi
