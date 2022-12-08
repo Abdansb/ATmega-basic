@@ -27,11 +27,12 @@
 
 char buf[100];							// Variabel sementara data gps
 volatile char ind,flag,stringReceived;	// Variabel update data
-char gpgga[]={'$','G','P','R','M','C'};	// String untuk dicocokan ke data gps
+char gprmc[]={'$','G','P','G','G','A'};	// String untuk dicocokan ke data gps
 /****************Array GPS***************/
 char latitude[12];						
 char logitude[12];
-char altitude[12];
+char time[12];
+int jam;
 
 void serialbegin()
 {	
@@ -50,10 +51,10 @@ ISR(USART_RXC_vect)							// Interrrupt aktif ketika USART Receive Complete
 	ind++;									// increment index buf untuk scan data dari gps
 	if(ind<7)								// scan data 6 karakter pertama tiap baris
 	{
-		if(buf[ind-1] != gpgga[ind-1])      // Baris yg tidak ada "$GPGGGA" akan diabaikan
+		if(buf[ind-1] != gprmc[ind-1])      // Baris yg tidak ada "$GPRMC" akan diabaikan
 		ind=0;
 	}
-	if(ind>=50)								// Jika "$GPGGGA" ketemu, copy semuanya ke variabel buf[100]
+	if(ind>=50)								// Jika "$GPRMC" ketemu, copy semuanya ke variabel buf[100]
 	
 	// set flag ke variabel ketika baris diatas diterima seluruhnya
 	stringReceived=1;						
@@ -103,39 +104,14 @@ void LCD_String (char *str)		/* Pecah string ke char satu-satu ke tampilan LCD *
 	}
 }
 
-void LCD_String_xy (char baris, char kolom, char *str)/* Send string to LCD with xy position */
-{
-	if (baris == 0 && kolom<16)
-	LCD_Command((kolom & 0x0F)|0x80);	/* Command of first baris and required position<16 */
-	else if (baris == 1 && kolom<16)
-	LCD_Command((kolom & 0x0F)|0xC0);	/* Command of first baris and required position<16 */
-	LCD_String(str);		/* Call LCD string function */
-}
-
 void LCD_Clear()
 {
 	LCD_Command (1 << PORTC0);		/* clear display */
 	LCD_Command (1 << PORTC7);		/* cursor di kolom & baris pertama */
 }
 
-void ADC_INIT()
-{
-	ADCSRA |= (1 << 7); // ADC enable ADEN bit 7
-	ADCSRA |= (1 <<2)|(1 << 1)|(1 << 0); // ADPS prescaler select bits
-	SFIOR &= ~(1 << 7) &~ (1 << 6) &~ (1 << 5); // mode free running, bit 765 isinya 0
-	
-	ADMUX |= (1 << 7)|(1 << 6); // set refernsi internal 2.56 V
-	ADMUX |= (1 << 0); // Analaog channel & gain selection bit (MUX0)
-	// single ended input adc 0
-	ADMUX &= ~(1 << 5); // Right adjusted presentation adc result
-}
-
 int main()
 {
-	ADC_INIT();
-	ADCSRA |= (1 << 6); // ADSC adc start conversion free running
-	DDRB = 0xff;
-	
 	LCD_Init();								// Inisialisasi LCD
 	serialbegin();							// Inisialisasi usart
 
@@ -150,11 +126,6 @@ int main()
 	
 	while(1)
 	{
-		if (ADCSRA & (1 << 4)) // ADIF interrupt flag, jika adc selesai
-		{
-			PORTB = ADCL;
-			ADCSRA |= (1 << 4);
-		}
 		if(stringReceived == 1)
 		{
 			// Hentikan interrupt dengan clear SREG, interrupt global disable
@@ -169,9 +140,9 @@ int main()
 			LCD_String("LAT: ");
 			
 			// Pilih string dari GPRMC yang memuat latitude, ada di buf[17] sampai buf[29]
-			for(int i=20;i<32;i++)
+			for(int i=18;i<30;i++)
 			{
-				latitude[i]=buf[i];						// Copy altitude ke array sendiri
+				latitude[i]=buf[i];						// Copy time ke array sendiri
 				LCD_Char(latitude[i]);					// Panggil fungsi tampilkan di LCD
 			
 			}
@@ -180,7 +151,7 @@ int main()
 			LCD_String("LOG:");
 			
 			// Pilih string dari GPRMC yang memuat latitude, ada di buf[30] sampai buf[43]
-			for(int i=32;i<45;i++)
+			for(int i=30;i<43;i++)
 			{
 				logitude[i]=buf[i];						// Copy logitude ke array sendiri
 				LCD_Char(logitude[i]);					// Panggil fungsi tampilkan di LCD
@@ -190,22 +161,21 @@ int main()
 					i++;
 				}
 			}
-			
-			/*_delay_ms(3000);
-			for(int i=0;i<ind;i++)						// copy satu baris dari GPRMC
-			ind=0;
+
+			sei(); // Ketika data gps dari interrupt sudah ditampilkan maka interrupt jalan lagi
+			_delay_ms(3000);
 			LCD_Clear();
 			LCD_String("Time: ");
-			for(int i=7;i<19;i++)
+			for(int i=7;i<29;i++)
 			{
-				altitude[i]=buf[i];
-				LCD_Char(altitude[i]);
-			}*/
+				time[i]=buf[i];
+				LCD_Char(time[i]);
+			}
+
+
+
+			_delay_ms(3000); // Tunda 10 detik sebelum scan data gps baru lagi
 			
-			
-			
-			_delay_ms(500); // Tunda 10 detik sebelum scan data gps baru lagi
-			sei(); // Ketika data gps dari interrupt sudah ditampilkan maka interrupt jalan lagi
 			
 		}
 	}
