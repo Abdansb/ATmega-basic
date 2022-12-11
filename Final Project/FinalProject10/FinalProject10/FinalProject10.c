@@ -27,7 +27,7 @@
 
 char buf[100];							// Variabel sementara data gps
 volatile char ind,flag,stringReceived;	// Variabel update data
-char gprmc[]={'$','G','P','G','G','A'};	// String untuk dicocokan ke data gps
+char gpgga[]={'$','G','P','G','G','A'};	// String untuk dicocokan ke data gps
 /****************Array GPS***************/
 char latitude[12];						
 char logitude[12];
@@ -51,10 +51,10 @@ ISR(USART_RXC_vect)							// Interrrupt aktif ketika USART Receive Complete
 	ind++;									// increment index buf untuk scan data dari gps
 	if(ind<7)								// scan data 6 karakter pertama tiap baris
 	{
-		if(buf[ind-1] != gprmc[ind-1])      // Baris yg tidak ada "$GPRMC" akan diabaikan
+		if(buf[ind-1] != gpgga[ind-1])      // Baris yg tidak ada "$GPGGA" akan diabaikan
 		ind=0;
 	}
-	if(ind>=50)								// Jika "$GPRMC" ketemu, copy semuanya ke variabel buf[100]
+	if(ind>=50)								// Jika "$GPGGA" ketemu, copy semuanya ke variabel buf[100]
 	
 	// set flag ke variabel ketika baris diatas diterima seluruhnya
 	stringReceived=1;						
@@ -110,8 +110,47 @@ void LCD_Clear()
 	LCD_Command (1 << PORTC7);		/* cursor di kolom & baris pertama */
 }
 
+void ADC_INIT()
+{
+	ADCSRA |= (1 << 7); // ADC enable ADEN bit 7
+	ADCSRA |= (1 <<2)|(1 << 1)|(1 << 0); // ADPS prescaler select bits
+	SFIOR &= ~(1 << 7) &~ (1 << 6) &~ (1 << 5); // mode free running, bit 765 isinya 0
+	
+	ADMUX |= (1 << 6); // set refernsi avcc
+	ADMUX |= (1 << 4)|(1 << 3)|(1 << 2)|(1 << 1);
+
+
+	ADCSRA |= (1 << 6);
+	DDRB = 0xff;
+}
+
+void Tombol_Init()
+{
+	DDRD = 0x00;
+	PORTD |= (1 << PORTD2);
+	// Aktifkan interupsi eksternal INT0 (PD2)
+	GICR = (1 << INT0);
+	// Kontrol trigger interupsi eksternal (aktif sisi naik)
+	MCUCR = (1 << ISC00)|(1 << ISC01);
+	// Status register, mengaktifkan interupsi global (set bit i)
+}
+
+// Rutin interupsi sumber/vector INT0
+ISR(INT0_vect)
+{
+	LCD_String("Abdan");
+	_delay_ms(5000);
+}
+
 int main()
 {
+	float Vcc_value = 0 /* measured Vcc value */;
+	uint16_t ADC_RES_L = 0;
+	uint16_t ADC_RES_H = 0;
+	char *Value[50];
+	
+	ADC_INIT();
+	//Tombol_Init();
 	LCD_Init();								// Inisialisasi LCD
 	serialbegin();							// Inisialisasi usart
 
@@ -124,14 +163,24 @@ int main()
 	/* Mulai interrupt usart, set SREG bit ke-8 = 1, interrupt global enable */
 	sei();
 	
+	
+	
 	while(1)
 	{
+		if (ADCSRA & (0x01 << ADIF)) /* check if ADC conversion complete */
+		{
+			ADC_RES_L = (int)ADCL;
+			ADC_RES_H = (int)ADCH*256;
+			Vcc_value = (1024*1.22)/(ADC_RES_L+ADC_RES_H);
+			sprintf(Value,"Battery : %.2f V",Vcc_value);
+			ADCSRA |= (1 << 4);
+		}		LCD_Clear();		LCD_String(Value);		_delay_ms(3000);
 		if(stringReceived == 1)
 		{
 			// Hentikan interrupt dengan clear SREG, interrupt global disable
 			cli();
 			
-			for(int i=0;i<ind;i++)						// copy satu baris dari GPRMC
+			for(int i=0;i<ind;i++)						// copy satu baris dari GPGGA
 			ind=0;										// setelahnya index nol lagi
 			
 			stringReceived=0;							// baris sudah diterima, flag nol lagi
@@ -139,7 +188,7 @@ int main()
 			LCD_Command (1 << PORTA7);					// Posisi kursor LCD kolom & baris pertama
 			LCD_String("LAT: ");
 			
-			// Pilih string dari GPRMC yang memuat latitude, ada di buf[17] sampai buf[29]
+			// Pilih string dari GPGGA yang memuat latitude, ada di buf[17] sampai buf[29]
 			for(int i=18;i<30;i++)
 			{
 				latitude[i]=buf[i];						// Copy time ke array sendiri
@@ -150,7 +199,7 @@ int main()
 			LCD_Command (1 << PORTC7|1 << PORTC6);		// Pindah baris kedua LCD
 			LCD_String("LOG:");
 			
-			// Pilih string dari GPRMC yang memuat latitude, ada di buf[30] sampai buf[43]
+			// Pilih string dari GPGGA yang memuat latitude, ada di buf[30] sampai buf[43]
 			for(int i=30;i<43;i++)
 			{
 				logitude[i]=buf[i];						// Copy logitude ke array sendiri
