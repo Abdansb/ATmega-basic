@@ -1,4 +1,4 @@
-# ATmega-basic
+## ATmega-basic
 Few examples of ATmega AVR basic input-output programming
 **Tools needed :**
 * ATmel Studio 7.0
@@ -12,4 +12,4 @@ Few examples of ATmega AVR basic input-output programming
 
 you can also upload this code using arduino as microcontroller itself connected via icsp pin
 
-Final Project : ATmega GPS Tracker with LCD display
+# Final Project : ATmega GPS Tracker with LCD display
