@@ -2,10 +2,7 @@
  * FinalProject10.c
  *
  * Created: 11/22/2022 3:45:23 PM
- *  Author: Kelompok 10
- *	Bagus Hatmoko
- *	Sherly Indiana
- *	Abdan Subekti
+ *  Author: Abdan Subekti
  */ 
 
 #define F_CPU 16000000L
@@ -174,7 +171,11 @@ int main()
 			Vcc_value = (1024*1.22)/(ADC_RES_L+ADC_RES_H);
 			sprintf(Value,"Battery : %.2f V",Vcc_value);
 			ADCSRA |= (1 << 4);
-		}		LCD_Clear();		LCD_String(Value);		_delay_ms(3000);
+		}
+		LCD_Clear();
+		LCD_String(Value);
+		_delay_ms(3000);
+
 		if(stringReceived == 1)
 		{
 			// Hentikan interrupt dengan clear SREG, interrupt global disable
